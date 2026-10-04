@@ -67,6 +67,10 @@ resource "aws_ecs_service" "taskflow_service" {
     container_name   = "taskflow-api"
     container_port   = 3000
   }
+
+  service_registries {
+    registry_arn = aws_service_discovery_service.taskflow_api.arn
+  }  
 }
 
 resource "aws_cloudwatch_log_group" "taskflow_api" {
@@ -74,3 +78,20 @@ resource "aws_cloudwatch_log_group" "taskflow_api" {
   retention_in_days = 7
 }
 
+
+resource "aws_ecs_service" "prometheus" {
+  name            = "prometheus"
+  cluster         = aws_ecs_cluster.taskflow_cluster.id
+  task_definition = aws_ecs_task_definition.prometheus.arn
+  launch_type     = "FARGATE"
+  desired_count   = 1
+
+  network_configuration {
+    subnets         = aws_subnet.priv_subnet[*].id
+    security_groups = [aws_security_group.prometheus_sg.id]
+  }
+
+  service_registries {
+    registry_arn = aws_service_discovery_service.prometheus.arn
+  }
+}

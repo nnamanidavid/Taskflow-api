@@ -118,3 +118,77 @@ resource "aws_vpc_endpoint" "ec2messages" {
   security_group_ids  = [aws_security_group.vpc_endpoint_sg.id]
   private_dns_enabled = true
 }
+
+
+#####
+
+resource "aws_security_group" "prometheus_sg" {
+  name        = "prometheus-sg"
+  description = "Security group for Prometheus"
+  vpc_id      = aws_vpc.taskflow_vpc.id
+
+  tags = {
+    Name = "prometheus-sg"
+  }
+}
+
+resource "aws_security_group_rule" "prometheus_egress_all" {
+  type              = "egress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.prometheus_sg.id
+}
+
+resource "aws_security_group_rule" "app_allow_prometheus_scrape" {
+  type                     = "ingress"
+  description              = "Allow Prometheus to scrape the app"
+  from_port                = 3000
+  to_port                  = 3000
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.prometheus_sg.id
+  security_group_id        = aws_security_group.app_sg.id
+}
+
+resource "aws_security_group_rule" "prometheus_ingress_from_grafana" {
+  type                     = "ingress"
+  description              = "Allow Grafana to query Prometheus"
+  from_port                = 9090
+  to_port                  = 9090
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.grafana_sg.id
+  security_group_id        = aws_security_group.prometheus_sg.id
+}
+
+
+#####
+
+resource "aws_security_group" "grafana_sg" {
+  name        = "grafana-sg"
+  description = "Security group for Grafana"
+  vpc_id      = aws_vpc.taskflow_vpc.id
+
+  tags = {
+    Name = "grafana-sg"
+  }
+}
+
+resource "aws_security_group_rule" "grafana_egress_all" {
+  type              = "egress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.grafana_sg.id
+}
+
+resource "aws_security_group_rule" "grafana_ingress_from_alb" {
+  type                     = "ingress"
+  description              = "Allow ALB to reach Grafana UI"
+  from_port                = 3000
+  to_port                  = 3000
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.alb_sg.id
+  security_group_id        = aws_security_group.grafana_sg.id
+}

@@ -38,3 +38,13 @@ resource "aws_lb_listener" "http" {
     target_group_arn = aws_lb_target_group.app_tg.arn
   }
 }
+
+resource "aws_security_group_rule" "alb_egress_to_grafana" {
+  type                     = "egress"
+  description              = "To Grafana"
+  from_port                = 3000
+  to_port                  = 3000
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.grafana_sg.id
+  security_group_id        = aws_security_group.alb_sg.id
+}
